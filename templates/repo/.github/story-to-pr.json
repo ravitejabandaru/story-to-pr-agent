@@ -1,0 +1,12 @@
+{
+  "maxFiles": 15,
+  "jiraKeyPattern": "[A-Z][A-Z0-9]+-\\d+",
+  "branchPattern": "^(feature|bugfix|chore)/{KEY}-[a-z0-9-]+$",
+  "protectedPaths": [
+    ".github/workflows/**",
+    "**/permissionsets/**",
+    "**/profiles/**",
+    "**/sharingRules/**",
+    "**/*.permissionset-meta.xml"
+  ]
+}

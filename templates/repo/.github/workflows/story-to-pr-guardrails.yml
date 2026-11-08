@@ -1,0 +1,21 @@
+# Checks every PR opened by the coding agent against the Story-to-PR contract.
+# Make it a required status check in branch protection so a failing agent PR can't be merged.
+name: Story-to-PR guardrails
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  guardrails:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4          # only needed for .github/story-to-pr.json
+      - uses: ravitejabandaru/story-to-pr-agent/actions/guardrails@v1
+        with:
+          agent-logins: "Copilot,copilot-swe-agent[bot]"   # check the login your agent PRs use
+          # ask-agent: "true"                              # let the agent fix findings itself

@@ -1,0 +1,76 @@
+name: Story-to-PR guardrails
+description: Enforce the agent PR contract on every push — Jira traceability, PR sections, scope, protected paths, test integrity and dependencies.
+author: story-to-pr-agent
+branding:
+  icon: shield
+  color: blue
+
+inputs:
+  token:
+    description: Token used to read PR files and post the report comment.
+    default: ${{ github.token }}
+  agent-logins:
+    description: Comma-separated PR authors to check. Leave empty to check every PR.
+    default: "Copilot,copilot-swe-agent[bot]"
+  config-path:
+    description: Optional JSON config that overrides the defaults (maxFiles, protectedPaths, requiredSections …).
+    default: .github/story-to-pr.json
+  comment:
+    description: Post (or update) a report comment on the PR.
+    default: "true"
+  ask-agent:
+    description: >
+      When "true" and there are errors, post a NEW comment that mentions the coding agent so it fixes
+      the findings itself. Off by default — each round costs agent credits.
+    default: "false"
+
+outputs:
+  passed:
+    description: "true when there are no errors"
+    value: ${{ steps.guard.outputs.passed }}
+
+runs:
+  using: composite
+  steps:
+    - id: guard
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        AGENT_LOGINS: ${{ inputs.agent-logins }}
+        STORY_TO_PR_CONFIG: ${{ inputs.config-path }}
+        REPORT_PATH: ${{ runner.temp }}/story-to-pr-report.md
+      run: |
+        set +e
+        node "${{ github.action_path }}/../../src/guardrails/cli.js"
+        echo "code=$?" >> "$GITHUB_OUTPUT"
+        # The CLI skips (and writes no report) for PRs not authored by the agent.
+        if [ -f "$REPORT_PATH" ]; then echo "report=true" >> "$GITHUB_OUTPUT"; fi
+
+    - name: Post report comment
+      if: inputs.comment == 'true' && steps.guard.outputs.report == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        REPO: ${{ github.repository }}
+        PR: ${{ github.event.pull_request.number }}
+        REPORT: ${{ runner.temp }}/story-to-pr-report.md
+        CODE: ${{ steps.guard.outputs.code }}
+        ASK_AGENT: ${{ inputs.ask-agent }}
+      run: |
+        if [ "$ASK_AGENT" = "true" ] && [ "$CODE" != "0" ]; then
+          { printf '@copilot Please fix the guardrail findings below, then push again.\n\n'; cat "$REPORT"; } > "$REPORT.ask"
+          gh pr comment "$PR" --repo "$REPO" --body-file "$REPORT.ask"
+          exit 0
+        fi
+        ID=$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
+          --jq '.[] | select(.body | contains("<!-- story-to-pr-guardrails")) | .id' | tail -n 1)
+        if [ -n "$ID" ]; then
+          gh api -X PATCH "repos/$REPO/issues/comments/$ID" -F body=@"$REPORT" > /dev/null
+        else
+          gh pr comment "$PR" --repo "$REPO" --body-file "$REPORT"
+        fi
+
+    - name: Fail on errors
+      if: steps.guard.outputs.code != '0'
+      shell: bash
+      run: exit 1

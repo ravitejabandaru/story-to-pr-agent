@@ -1,0 +1,63 @@
+name: Story-to-PR lessons
+description: Turn a reviewer's "/lesson <rule>" comment into a PR that adds the rule to the agent's instructions.
+author: story-to-pr-agent
+branding:
+  icon: book-open
+  color: green
+
+inputs:
+  token:
+    description: Token with contents and pull-requests write access.
+    default: ${{ github.token }}
+  lessons-file:
+    description: Instructions file the lessons are appended to.
+    default: .github/instructions/lessons.instructions.md
+
+runs:
+  using: composite
+  steps:
+    - id: lesson
+      shell: bash
+      env:
+        COMMENT_BODY: ${{ github.event.comment.body }}
+        PR_NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
+        COMMENT_PATH: ${{ github.event.comment.path }}
+        LESSONS_FILE: ${{ inputs.lessons-file }}
+      run: node "${{ github.action_path }}/../../src/lessons/cli.js"
+
+    - name: Open a PR with the new lesson
+      if: steps.lesson.outputs.added == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        LESSON: ${{ steps.lesson.outputs.lesson }}
+        COUNT: ${{ steps.lesson.outputs.count }}
+        PR_NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
+        COMMENT_ID: ${{ github.event.comment.id }}
+        COMMENT_URL: ${{ github.event.comment.html_url }}
+        LESSONS_FILE: ${{ inputs.lessons-file }}
+      run: |
+        BRANCH="agent-lessons/pr-${PR_NUMBER}-${COMMENT_ID}"
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git switch -c "$BRANCH"
+        git add "$LESSONS_FILE"
+        git commit -m "Add agent lesson from PR #${PR_NUMBER}" -m "$LESSON"
+        git push origin "$BRANCH"
+        BODY=$(printf 'Adds lesson %s to `%s`:\n\n> %s\n\nSource: %s\n\nThe coding agent reads this file on every task once merged.' \
+          "$COUNT" "$LESSONS_FILE" "$LESSON" "$COMMENT_URL")
+        gh pr create --head "$BRANCH" --title "Agent lesson: ${LESSON:0:60}" --body "$BODY"
+
+    - name: Acknowledge the comment
+      if: always() && steps.lesson.outputs.lesson != ''
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        REPO: ${{ github.repository }}
+        COMMENT_ID: ${{ github.event.comment.id }}
+        EVENT: ${{ github.event_name }}
+        ADDED: ${{ steps.lesson.outputs.added }}
+      run: |
+        KIND=$([ "$EVENT" = "pull_request_review_comment" ] && echo "pulls/comments" || echo "issues/comments")
+        REACTION=$([ "$ADDED" = "true" ] && echo "+1" || echo "eyes")
+        gh api -X POST "repos/$REPO/$KIND/$COMMENT_ID/reactions" -f content="$REACTION" > /dev/null || true

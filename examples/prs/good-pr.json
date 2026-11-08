@@ -1,0 +1,22 @@
+{
+  "title": "PAY-1432: Add preferred contact time to Case 360",
+  "headRef": "feature/PAY-1432-preferred-contact-time",
+  "body": "## Summary\nAdds the Preferred contact time field to the Case 360 contact section via JSON config.\n\n## Acceptance criteria → evidence\n| AC | Test(s) | Status |\n|----|---------|--------|\n| 1 | caseContact.test.js › shows field after Phone | ✅ |\n| 2 | caseContact.test.js › shows Not provided when empty | ✅ |\n| 3 | caseContact.test.js › hides field without access | ✅ |\n\n## Pattern followed\nconfigs/case360.json → Phone field entry\n\n## Knowledge used\ndocs/renderer/contract.md\n\n## Assumptions\nLabel text comes from a Custom Label.\n\n## Cross-repo dependencies\nNone\n\n## Risks and reviewer focus\nField-level security handling in the renderer.\n\n## Not done\nNothing.",
+  "files": [
+    {
+      "filename": "configs/case360.json",
+      "status": "modified",
+      "patch": "@@ -12,6 +12,7 @@\n   { \"type\": \"field\", \"field\": \"Case.ContactPhone\" },\n+  { \"type\": \"field\", \"field\": \"Case.Preferred_Contact_Time__c\", \"emptyText\": \"Not provided\" },"
+    },
+    {
+      "filename": "force-app/main/default/labels/CustomLabels.labels-meta.xml",
+      "status": "modified",
+      "patch": "@@ -1,3 +1,8 @@\n+    <labels>\n+        <fullName>Preferred_Contact_Time</fullName>\n+    </labels>"
+    },
+    {
+      "filename": "force-app/main/default/lwc/caseContact/__tests__/caseContact.test.js",
+      "status": "modified",
+      "patch": "@@ -40,0 +41,12 @@\n+it('shows preferred contact time after phone', () => {\n+  expect(rows[1].textContent).toBe('Preferred contact time');\n+});\n+it('shows Not provided when empty', () => {\n+  expect(value.textContent).toBe('Not provided');\n+});\n+it('hides the field without access', () => {\n+  expect(field).toBeNull();\n+});"
+    }
+  ]
+}

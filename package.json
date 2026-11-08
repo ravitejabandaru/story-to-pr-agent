@@ -1,0 +1,32 @@
+{
+  "name": "story-to-pr-agent",
+  "version": "1.0.0",
+  "description": "A guard-railed, self-improving harness that turns Jira stories into reviewed pull requests with the GitHub Copilot coding agent.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "story-ready": "src/readiness/cli.js",
+    "agent-pr-guard": "src/guardrails/cli.js"
+  },
+  "scripts": {
+    "test": "node --test",
+    "lifecycle:demo": "node examples/lifecycle-demo.js",
+    "readiness:demo": "node src/readiness/cli.js examples/stories/ready.md && node src/readiness/cli.js examples/stories/not-ready.md || true"
+  },
+  "keywords": [
+    "github-copilot",
+    "coding-agent",
+    "jira",
+    "xstate",
+    "salesforce",
+    "lwc",
+    "devx",
+    "automation"
+  ],
+  "dependencies": {
+    "xstate": "^5.33.4"
+  }
+}
