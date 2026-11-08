@@ -2,6 +2,8 @@
 
 **Turn Jira user stories into reviewed pull requests with the GitHub Copilot coding agent — safely, cheaply, and getting better every sprint.**
 
+**[Live demo](https://ravitejabandaru.github.io/story-to-pr-agent/demo/)** (after GitHub Pages is enabled) · [`demo/index.html`](demo/index.html)
+
 [![CI](https://github.com/ravitejabandaru/story-to-pr-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/ravitejabandaru/story-to-pr-agent/actions/workflows/ci.yml)
 ![Node 20+](https://img.shields.io/badge/node-%3E%3D20-339933)
 ![XState v5](https://img.shields.io/badge/XState-v5-2c3e50)

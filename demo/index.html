@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>Story-to-PR Console</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap">
+<style>
+/* Layout: dark app bar over a cool-grey work surface; summary tiles first, detail in a 2:1 split that stacks on phones. */
+:root {
+  --bg: #F3F5F9;
+  --surface: #FFFFFF;
+  --surface-2: #F7F9FC;
+  --line: #E1E6EE;
+  --track: #E4E8EF;
+  --fg: #111827;
+  --fg-2: #374151;
+  --muted: #586273;
+  --accent: #2563EB;
+  --on-accent: #FFFFFF;
+  --accent-soft: #E8F0FE;
+  --accent-ink: #1D4ED8;
+  --ok: #16A34A;
+  --ok-soft: #E7F6EC;
+  --ok-ink: #166534;
+  --warn: #F59E0B;
+  --warn-soft: #FFF1E6;
+  --warn-ink: #9A4A00;
+  --bad: #EA580C;
+  --bad-ink: #9A3412;
+  --idle: #94A3B8;
+  --nav: #0F172A;
+  --nav-2: #1E293B;
+  --nav-fg: #F8FAFC;
+  --nav-muted: #CBD5E1;
+  --shadow: rgba(16, 24, 40, .08);
+  --focus: #93C5FD;
+  --font-ui: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0B1120; --surface: #121A2C; --surface-2: #172238; --line: #243150; --track: #26334F;
+    --fg: #E7EBF3; --fg-2: #C9D1DE; --muted: #9AA6BB;
+    --accent: #6EA0FF; --on-accent: #0B1120; --accent-soft: #1A2A4A; --accent-ink: #A9C4FF;
+    --ok: #34D27A; --ok-soft: #12301F; --ok-ink: #86E3AE;
+    --warn: #FBBF24; --warn-soft: #38290F; --warn-ink: #FCD38A;
+    --bad: #FB8A4A; --bad-ink: #FDBA8C; --idle: #64748B;
+    --nav: #070B16; --nav-2: #18233A; --nav-fg: #F1F5FB; --nav-muted: #A8B3C7;
+    --shadow: rgba(0, 0, 0, .45); --focus: #3B6FD8;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0B1120; --surface: #121A2C; --surface-2: #172238; --line: #243150; --track: #26334F;
+  --fg: #E7EBF3; --fg-2: #C9D1DE; --muted: #9AA6BB;
+  --accent: #6EA0FF; --on-accent: #0B1120; --accent-soft: #1A2A4A; --accent-ink: #A9C4FF;
+  --ok: #34D27A; --ok-soft: #12301F; --ok-ink: #86E3AE;
+  --warn: #FBBF24; --warn-soft: #38290F; --warn-ink: #FCD38A;
+  --bad: #FB8A4A; --bad-ink: #FDBA8C; --idle: #64748B;
+  --nav: #070B16; --nav-2: #18233A; --nav-fg: #F1F5FB; --nav-muted: #A8B3C7;
+  --shadow: rgba(0, 0, 0, .45); --focus: #3B6FD8;
+  color-scheme: dark;
+}
+
+body { background: var(--bg); color: var(--fg); font-family: var(--font-ui); font-size: 15px; line-height: 1.5; }
+a { color: var(--accent-ink); }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* App bar */
+.nav { background: var(--nav); color: var(--nav-fg); }
+.nav-in { max-width: 1360px; margin: 0 auto; min-height: 60px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
+  padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); box-sizing: border-box; }
+.brand { display: flex; align-items: center; gap: 10px; }
+.logo { width: 30px; height: 30px; border-radius: 8px; background: var(--accent); display: grid; place-items: center; }
+.logo svg { stroke: var(--on-accent); }
+.brand b { font-size: 15px; font-weight: 600; }
+.brand span { font-size: 13px; color: var(--nav-muted); }
+.tabs { display: flex; gap: 4px; margin-left: 16px; flex-wrap: wrap; }
+.tabs a { padding: 8px 12px; border-radius: 8px; color: var(--nav-muted); font-size: 14px; font-weight: 500; text-decoration: none; transition: background-color .15s, color .15s; }
+.tabs a:hover { color: var(--nav-fg); background: var(--nav-2); }
+.tabs a[aria-current="page"] { background: var(--nav-2); color: var(--nav-fg); font-weight: 600; }
+.sample { margin-left: auto; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--nav-2); color: var(--nav-muted); }
+
+.wrap { max-width: 1360px; margin: 0 auto; box-sizing: border-box; padding-block: 28px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 20px; }
+
+/* Building blocks */
+.head { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: flex-end; justify-content: space-between; }
+.head h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+.sub { margin: 4px 0 0; font-size: 14px; color: var(--muted); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; min-width: 0; }
+.card-h { padding: 16px 20px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.card-h h2 { font-size: 16px; font-weight: 600; }
+.card-b { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+.hint { font-size: 12px; color: var(--muted); }
+.split { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+.split > .main { flex: 999 1 560px; min-width: 0; }
+.split > .side { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 20px; }
+
+.btn { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid transparent;
+  font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; transition: transform .12s ease-out, background-color .15s; }
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: none; }
+.btn.primary { background: var(--accent); color: var(--on-accent); }
+.btn.primary svg { stroke: var(--on-accent); }
+.btn.ghost { background: var(--surface); color: var(--fg); border-color: var(--line); }
+.btn.ghost:hover { background: var(--surface-2); }
+.btn.ghost svg { stroke: var(--fg); }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+.chip.info { background: var(--accent-soft); color: var(--accent-ink); }
+.chip.ok { background: var(--ok-soft); color: var(--ok-ink); }
+.chip.warn { background: var(--warn-soft); color: var(--warn-ink); }
+.chip.plain { background: var(--surface-2); color: var(--fg-2); border: 1px solid var(--line); }
+.key { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--accent-ink); }
+
+/* KPI tiles */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; }
+.kpi { padding: 18px 20px; display: flex; flex-direction: column; gap: 6px; transition: box-shadow .18s, transform .18s; }
+.kpi:hover { box-shadow: 0 6px 20px var(--shadow); transform: translateY(-2px); }
+.kpi .label { font-size: 13px; font-weight: 500; color: var(--muted); }
+.kpi .value { font-family: var(--font-mono); font-size: 28px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.kpi .trend { font-size: 12px; font-weight: 600; }
+.t-ok { color: var(--ok-ink); } .t-muted { color: var(--muted); }
+
+/* Live runs */
+.run { display: flex; flex-direction: column; gap: 12px; padding: 16px 12px; border-radius: 10px; color: var(--fg); text-decoration: none; transition: background-color .15s; }
+.run:hover { background: var(--surface-2); }
+.run-top { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; }
+.run-title { display: flex; gap: 10px; align-items: baseline; min-width: 0; flex-wrap: wrap; }
+.run-title b { font-size: 14px; font-weight: 600; }
+.stages { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+.stage { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.stage .bar { height: 6px; border-radius: 999px; background: var(--track); overflow: hidden; }
+.stage .bar i { display: block; height: 100%; }
+.stage span { font-size: 11px; font-weight: 500; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stage.on span { color: var(--fg); }
+.fill-ok { background: var(--ok); } .fill-now { background: var(--accent); } .fill-hold { background: var(--warn); }
+.flow { background-image: repeating-linear-gradient(90deg, rgba(255,255,255,.35) 0 6px, transparent 6px 14px); background-size: 28px 100%; animation: flow .9s linear infinite; }
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: ring 1.6s ease-out infinite; }
+
+/* Bars */
+.stack { display: flex; height: 12px; border-radius: 999px; overflow: hidden; gap: 2px; }
+.legend { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.legend div { display: flex; justify-content: space-between; gap: 12px; }
+.legend span { display: flex; gap: 8px; align-items: center; }
+.sw { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.meter { height: 6px; border-radius: 999px; background: var(--track); overflow: hidden; }
+.meter i { display: block; height: 100%; border-radius: 999px; background: var(--accent); }
+.grow { transform-origin: left center; animation: grow .9s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--d, .3s); }
+
+/* Run detail */
+.run-head { padding: 22px 24px; display: flex; flex-direction: column; gap: 24px; }
+.run-head h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.01em; }
+.branch { font-family: var(--font-mono); font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.stepper { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); position: relative; }
+.stepper .line { position: absolute; left: 8.33%; right: 8.33%; top: 17px; height: 3px; border-radius: 999px; background: var(--track); }
+.stepper .line i { display: block; height: 100%; border-radius: 999px; background: var(--ok); transition: width .6s cubic-bezier(.2,.7,.2,1); }
+.stepper li { position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px; min-width: 0; }
+.node { width: 36px; height: 36px; box-sizing: border-box; border-radius: 50%; display: grid; place-items: center; font-size: 14px; font-weight: 700; }
+.node.done { background: var(--ok); }
+.node.done svg { stroke: var(--surface); }
+.node.now { background: var(--accent); color: var(--on-accent); animation: ring 1.5s ease-out infinite; }
+.node.todo { background: var(--surface); border: 2px solid var(--line); color: var(--muted); }
+.stepper li > span { font-size: 13px; font-weight: 600; text-align: center; color: var(--muted); }
+.stepper li.reached > span { color: var(--fg); }
+.log { padding: 8px 12px 14px; display: flex; flex-direction: column; }
+.entry { display: flex; gap: 14px; padding: 14px 10px; border-radius: 10px; }
+.entry .ic { width: 32px; height: 32px; flex-shrink: 0; border-radius: 9px; display: grid; place-items: center; }
+.entry .ic.done { background: var(--ok-soft); } .entry .ic.done svg { stroke: var(--ok-ink); }
+.entry .ic.work { background: var(--accent-soft); gap: 3px; grid-auto-flow: column; }
+.entry .ic.work i { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); animation: dot 1.1s ease-in-out infinite; }
+.entry .ic.work i:nth-child(2) { animation-delay: .15s; } .entry .ic.work i:nth-child(3) { animation-delay: .3s; }
+.entry .txt { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.entry .row { display: flex; justify-content: space-between; gap: 12px; }
+.entry b { font-size: 14px; font-weight: 600; }
+.entry p { margin: 0; font-size: 14px; color: var(--fg-2); }
+.ac { display: flex; gap: 12px; align-items: flex-start; padding: 12px; border-radius: 10px; background: var(--surface-2); font-size: 13px; color: var(--fg-2); }
+.ac .chip { flex-shrink: 0; }
+.pr { border-color: var(--ok); box-shadow: 0 8px 24px var(--shadow); }
+.pr-top { display: flex; gap: 12px; align-items: center; }
+.pr-ic { width: 40px; height: 40px; border-radius: 10px; background: var(--ok-soft); display: grid; place-items: center; flex-shrink: 0; }
+.pr-ic svg { stroke: var(--ok-ink); }
+.plus { color: var(--ok-ink); font-weight: 600; } .minus { color: var(--bad-ink); font-weight: 600; }
+
+/* Intake */
+.story { padding: 18px 20px; display: flex; flex-wrap: wrap; gap: 18px; align-items: center; transition: box-shadow .18s, transform .18s, border-color .2s; }
+.story:hover { box-shadow: 0 6px 20px var(--shadow); transform: translateY(-2px); }
+.story.queued { border-color: var(--accent); }
+.ringbox { width: 56px; height: 56px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; }
+.ringbox span { width: 44px; height: 44px; border-radius: 50%; background: var(--surface); display: grid; place-items: center; font-family: var(--font-mono); font-size: 13px; font-weight: 600; }
+.story .body { flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.story .t { display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline; }
+.story .t b { font-size: 15px; font-weight: 600; }
+.checks { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.checks li { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--fg-2); }
+.checks li.miss { color: var(--bad-ink); }
+.checks .y { stroke: var(--ok); } .checks .n { stroke: var(--bad); }
+.story .act { flex: 0 0 auto; display: flex; justify-content: flex-end; }
+.state-tag { min-height: 44px; padding: 0 16px; border-radius: 10px; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; text-decoration: none; }
+.state-tag.q { background: var(--accent-soft); color: var(--accent-ink); }
+.state-tag.q svg { stroke: var(--accent-ink); animation: spin .9s linear infinite; }
+.state-tag.a { background: var(--warn-soft); color: var(--warn-ink); }
+.state-tag.a svg { stroke: var(--warn-ink); }
+.dor { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
+.dark-card { background: var(--nav); color: var(--nav-fg); border-color: var(--nav); }
+.dark-card .big { font-family: var(--font-mono); font-size: 32px; font-weight: 600; }
+.dark-card p { margin: 0; font-size: 13px; color: var(--nav-muted); }
+
+/* Motion */
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes pop { 0% { transform: scale(.85); opacity: 0; } 70% { transform: scale(1.04); opacity: 1; } 100% { transform: scale(1); } }
+@keyframes grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes flow { to { background-position: 28px 0; } }
+@keyframes ring { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); } 70% { box-shadow: 0 0 0 9px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+@keyframes dot { 0%, 80%, 100% { opacity: .25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+.rise { animation: rise .46s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--d, 0s); }
+.pop { animation: pop .38s cubic-bezier(.2,.8,.2,1) both; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+@media (max-width: 560px) {
+  .tabs { margin-left: 0; order: 3; width: 100%; }
+  .stepper li > span { font-size: 11px; }
+  .head h1 { font-size: 22px; }
+  .run-head h1 { font-size: 20px; }
+}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-in">
+    <div class="brand">
+      <div class="logo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="2.5"></circle><circle cx="18" cy="18" r="2.5"></circle><path d="M6 8.5v4a3 3 0 0 0 3 3h6.5"></path></svg></div>
+      <b>Story-to-PR</b><span>Agent console</span>
+    </div>
+    <nav class="tabs" aria-label="Views">
+      <a href="#overview" data-view="overview">Overview</a>
+      <a href="#runs" data-view="runs">Runs</a>
+      <a href="#intake" data-view="intake">Intake</a>
+    </nav>
+    <span class="sample">Sample data</span>
+  </div>
+</header>
+<main id="app" class="wrap" aria-live="polite"></main>
+
+<script>
+(() => {
+  const STAGES = ['Ready check', 'Plan', 'Tests first', 'Implement', 'Verify', 'Open PR'];
+  const ICON = {
+    check: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"></path></svg>',
+    plus: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>',
+    arrow: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>',
+    replay: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path></svg>',
+    spin: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9"></path></svg>',
+    chat: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>',
+    yes: '<svg class="y" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"></path></svg>',
+    no: '<svg class="n" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v6M12 16.5h.01"></path></svg>',
+    pr: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="2.5"></circle><circle cx="6" cy="18" r="2.5"></circle><circle cx="18" cy="18" r="2.5"></circle><path d="M6 8.5v7M18 15.5V9a3 3 0 0 0-3-3h-4"></path></svg>'
+  };
+
+  const KPIS = [
+    { label: 'Stories automated', to: 86, pre: '', suf: '', trend: '+21 vs last month', cls: 't-ok' },
+    { label: 'PRs merged', to: 74, pre: '', suf: '', trend: '86% of PRs opened', cls: 't-ok' },
+    { label: 'Median story → PR', to: 38, pre: '', suf: 'm', trend: 'Was 2.5 days manually', cls: 't-ok' },
+    { label: 'Developer hours saved', to: 310, pre: '~', suf: 'h', trend: 'Estimated from story points', cls: 't-muted' },
+    { label: 'Credits per merged PR', to: 142, pre: '', suf: '', trend: '−18% after adding the code map', cls: 't-ok' }
+  ];
+  const RUNS = [
+    { key: 'PAY-1432', title: 'Add preferred contact time to Case 360', repo: 'sf-service-console', at: 3, state: 'Implementing', tone: 'info' },
+    { key: 'PAY-1427', title: 'Hide refund button for closed cases', repo: 'sf-service-console', at: 4, state: 'Verifying', tone: 'info' },
+    { key: 'API-318', title: 'Return 404 when the case ID is unknown', repo: 'case-api', at: 0, state: 'Needs info', tone: 'warn', hold: true },
+    { key: 'PAY-1419', title: 'Show SLA badge on related cases list', repo: 'sf-service-console', at: 6, state: 'PR opened', tone: 'ok' }
+  ];
+  const BOUNCES = [
+    { label: 'No testable acceptance criteria', n: 9 },
+    { label: 'Missing sample JSON', n: 6 },
+    { label: 'Story spans several repos', n: 4 },
+    { label: 'No pattern to follow named', n: 2 }
+  ];
+  const STEPS = [
+    { title: 'Readiness check passed', time: '00:12', text: '3 testable acceptance criteria, sample JSON attached, one repository named. No questions needed.' },
+    { title: 'Plan', time: '01:40', text: 'Config-only change. Following the existing Phone field in case360.json. Files: case360.json, one Custom Label, caseContact.test.js.' },
+    { title: 'Tests written from acceptance criteria', time: '04:05', text: '3 Jest tests added, one per criterion. They fail before the change, as expected.' },
+    { title: 'Change implemented', time: '07:30', text: 'Added the field to the contact section in case360.json and a Custom Label for its title. No new component needed.' },
+    { title: 'Checks passed', time: '09:10', text: 'npm run agent:check · prettier ✓ eslint ✓ JSON schema ✓ jest 3/3 ✓' },
+    { title: 'Draft PR opened', time: '09:42', text: 'PR #482 linked to PAY-1432, with the acceptance criteria → test table. Team reviewers requested.' }
+  ];
+  const ACS = [
+    'Given an agent opens a case, the contact section shows “Preferred contact time” after Phone.',
+    'Given the value is empty, the field shows “Not provided”.',
+    'Given a user without access to the field, the field is hidden.'
+  ];
+  const CHECKS = ['Testable ACs', 'Sample JSON', 'One repo', 'Pattern named'];
+  const STORIES = [
+    { key: 'PAY-1440', title: 'Show case age badge in the queue list', repo: 'sf-service-console', ok: [1, 1, 1, 1] },
+    { key: 'API-321', title: 'Paginate the case history endpoint', repo: 'case-api', ok: [1, 1, 1, 1] },
+    { key: 'PAY-1438', title: 'Let agents mark a contact as preferred', repo: 'sf-service-console', ok: [1, 0, 1, 1] },
+    { key: 'PAY-1436', title: 'Add escalation reason picklist to Case 360', repo: 'sf-service-console', ok: [1, 1, 1, 1] },
+    { key: 'PAY-1435', title: 'Redesign billing tab and update billing API', repo: 'sf-service-console + billing-api', ok: [1, 0, 0, 1] },
+    { key: 'PAY-1433', title: 'Make the case page faster', repo: 'sf-service-console', ok: [0, 1, 1, 0] }
+  ];
+
+  const state = { view: 'overview', step: 0, timer: null, queued: {}, asked: {}, changed: null };
+  const app = document.getElementById('app');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const d = (i, base = 0, step = 0.05) => `style="--d:${(base + i * step).toFixed(2)}s"`;
+
+  /* ---------- Overview ---------- */
+  function overview() {
+    const stage = (r, i) => {
+      const done = i < r.at, now = i === r.at;
+      const fill = done ? 'fill-ok' : now ? (r.hold ? 'fill-hold' : 'fill-now flow') : '';
+      return `<div class="stage${done || now ? ' on' : ''}"><div class="bar"><i class="${fill}" style="width:${done || now ? 100 : 0}%"></i></div><span>${STAGES[i]}</span></div>`;
+    };
+    const max = Math.max(...BOUNCES.map((b) => b.n));
+    return `
+      <section class="head rise">
+        <div><h1>Automation overview</h1><p class="sub">Last 30 days · 4 repositories · stories assigned to the coding agent</p></div>
+        <a class="btn primary" href="#intake">${ICON.plus}Assign stories</a>
+      </section>
+      <section class="kpis" aria-label="Key metrics">
+        ${KPIS.map((k, i) => `<div class="card kpi rise" ${d(i, .05)}><span class="label">${k.label}</span><span class="value" data-to="${k.to}" data-pre="${k.pre}" data-suf="${k.suf}">${k.pre}${k.to}${k.suf}</span><span class="trend ${k.cls}">${k.trend}</span></div>`).join('')}
+      </section>
+      <div class="split">
+        <section class="card main rise" ${d(0, .25)}>
+          <div class="card-h"><div style="display:flex;align-items:center;gap:10px"><span class="live-dot" aria-hidden="true"></span><h2>Live runs</h2></div><a href="#runs" style="font-size:13px;font-weight:600;text-decoration:none">Open live run →</a></div>
+          <div style="padding:6px 8px 10px">
+            ${RUNS.map((r, i) => `<a class="run rise" href="#runs" ${d(i, .3, .06)}>
+              <div class="run-top"><div class="run-title"><span class="key">${r.key}</span><b>${r.title}</b></div>
+              <div style="display:flex;gap:8px;align-items:center"><span class="hint">${r.repo}</span><span class="chip ${r.tone}">${r.state}</span></div></div>
+              <div class="stages">${STAGES.map((_, s) => stage(r, s)).join('')}</div></a>`).join('')}
+          </div>
+        </section>
+        <aside class="side">
+          <section class="card rise" ${d(0, .32)}>
+            <div class="card-b">
+              <h2 style="font-size:16px;font-weight:600">PR outcomes</h2>
+              <div class="stack" role="img" aria-label="64% merged as-is, 22% merged after review changes, 14% closed without merge">
+                <i class="grow" style="width:64%;background:var(--ok);--d:.4s"></i><i class="grow" style="width:22%;background:var(--warn);--d:.5s"></i><i class="grow" style="width:14%;background:var(--idle);--d:.6s"></i>
+              </div>
+              <div class="legend">
+                <div><span><i class="sw" style="background:var(--ok)"></i>Merged as-is</span><b class="mono">64%</b></div>
+                <div><span><i class="sw" style="background:var(--warn)"></i>Merged after review changes</span><b class="mono">22%</b></div>
+                <div><span><i class="sw" style="background:var(--idle)"></i>Closed without merge</span><b class="mono">14%</b></div>
+              </div>
+            </div>
+          </section>
+          <section class="card rise" ${d(0, .38)}>
+            <div class="card-b">
+              <div><h2 style="font-size:16px;font-weight:600">Why stories came back</h2><p class="sub" style="margin-top:2px">The readiness check asked in Jira before any code was written</p></div>
+              ${BOUNCES.map((b, i) => `<div style="display:flex;flex-direction:column;gap:6px"><div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span>${b.label}</span><b class="mono">${b.n}</b></div><div class="meter"><i class="grow" style="width:${Math.round(b.n / max * 100)}%;--d:${(.45 + i * .08).toFixed(2)}s"></i></div></div>`).join('')}
+            </div>
+          </section>
+        </aside>
+      </div>`;
+  }
+
+  function countUp() {
+    if (reduce) return;
+    app.querySelectorAll('[data-to]').forEach((el) => {
+      const to = +el.dataset.to, pre = el.dataset.pre, suf = el.dataset.suf, t0 = performance.now(), dur = 900;
+      const tick = (t) => {
+        const p = Math.min(1, (t - t0) / dur), v = Math.round(to * (1 - Math.pow(1 - p, 3)));
+        el.textContent = `${pre}${v}${suf}`;
+        if (p < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+  }
+
+  /* ---------- Runs ---------- */
+  function runs(first) {
+    const s = state.step, done = s >= 6;
+    const acState = s >= 5 ? ['ok', 'Passing'] : s >= 3 ? ['info', 'Test written'] : ['plain', 'Pending'];
+    const logs = STEPS.slice(0, Math.min(s + 1, 6)).map((st, i) => {
+      const working = i === s && !done;
+      const fresh = i === s || (done && i === 5);
+      return `<article class="entry${fresh ? ' rise' : ''}">
+        <div class="ic ${working ? 'work' : 'done'}">${working ? '<i></i><i></i><i></i>' : ICON.check}</div>
+        <div class="txt"><div class="row"><b>${st.title}</b><span class="hint mono">${working ? '' : st.time}</span></div><p>${working ? 'Working…' : st.text}</p></div>
+      </article>`;
+    }).join('');
+    return `
+      <section class="card run-head${first ? ' rise' : ''}">
+        <div class="head" style="align-items:flex-start">
+          <div style="display:flex;flex-direction:column;gap:10px;flex:1 1 420px;min-width:0">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="key">PAY-1432</span><span class="chip plain">sf-service-console</span><span class="chip plain">Config-only</span></div>
+            <h1>Add “Preferred contact time” to the Case 360 contact section</h1>
+            <span class="branch">feature/PAY-1432-preferred-contact-time</span>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <span class="chip ${done ? 'ok' : 'info'}" style="font-size:13px;padding:6px 12px">${done ? 'PR opened' : 'Running · ' + STAGES[s]}</span>
+            <button class="btn ghost" id="replay" type="button">${ICON.replay}Replay</button>
+          </div>
+        </div>
+        <ol class="stepper" aria-label="Run progress">
+          <div class="line" aria-hidden="true"><i style="width:${Math.min(s, 5) / 5 * 100}%"></i></div>
+          ${STAGES.map((label, i) => {
+            const cls = i < s ? 'done' : i === s ? 'now' : 'todo';
+            const node = cls === 'done' ? `<div class="node done${i === s - 1 ? ' pop' : ''}">${ICON.check}</div>` : `<div class="node ${cls}">${i + 1}</div>`;
+            return `<li class="${i <= s ? 'reached' : ''}" aria-current="${i === s ? 'step' : 'false'}">${node}<span>${label}</span></li>`;
+          }).join('')}
+        </ol>
+      </section>
+      <div class="split">
+        <section class="card main${first ? ' rise' : ''}" ${d(0, .08)}>
+          <div class="card-h"><h2>Agent activity</h2><span class="hint">Mirrored to the Jira agent panel</span></div>
+          <div class="log">${logs}</div>
+        </section>
+        <aside class="side">
+          <section class="card${first ? ' rise' : ''}" ${d(0, .14)}>
+            <div class="card-b">
+              <div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><h2 style="font-size:16px;font-weight:600">Acceptance criteria</h2><span class="hint" style="font-weight:600">${s >= 5 ? '3 of 3 covered' : s >= 3 ? '3 tests written' : 'Not started'}</span></div>
+              ${ACS.map((a) => `<div class="ac"><span class="chip ${acState[0]}">${acState[1]}</span><span>${a}</span></div>`).join('')}
+            </div>
+          </section>
+          ${done ? `<section class="card pr pop"><div class="card-b">
+            <div class="pr-top"><div class="pr-ic">${ICON.pr}</div><div><b style="font-size:15px">Draft PR #482 ready for review</b><div class="hint" style="font-size:13px">3 files · <span class="plus">+38</span> <span class="minus">−4</span> · 4 of 4 checks passed · guardrails ✓</div></div></div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn primary" href="#runs">Review PR</a><a class="btn ghost" href="#runs">Open in Jira</a></div>
+          </div></section>` : ''}
+        </aside>
+      </div>`;
+  }
+
+  function startRun() {
+    clearInterval(state.timer);
+    state.step = reduce ? 6 : 0;
+    if (reduce) return;
+    state.timer = setInterval(() => {
+      if (state.view !== 'runs') return clearInterval(state.timer);
+      state.step += 1;
+      paint(false);
+      if (state.step >= 6) clearInterval(state.timer);
+    }, 1500);
+  }
+
+  /* ---------- Intake ---------- */
+  function intake(first) {
+    const items = STORIES.map((st, i) => {
+      const score = st.ok.reduce((a, b) => a + b, 0), ready = score === 4, pct = score * 25;
+      const q = !!state.queued[st.key], asked = !!state.asked[st.key];
+      const ring = ready ? 'var(--ok)' : score === 3 ? 'var(--warn)' : 'var(--bad)';
+      const pop = state.changed === st.key ? ' pop' : '';
+      let act;
+      if (ready && !q) act = `<button class="btn primary" type="button" data-assign="${st.key}">${ICON.arrow}Assign to Copilot</button>`;
+      else if (q) act = `<a class="state-tag q${pop}" href="#runs">${ICON.spin}Agent started · view run</a>`;
+      else if (!asked) act = `<button class="btn ghost" type="button" data-ask="${st.key}">Ask product owner</button>`;
+      else act = `<span class="state-tag a${pop}">${ICON.chat}Questions posted in Jira</span>`;
+      return `<article class="card story${q ? ' queued' : ''}${first ? ' rise' : ''}" ${d(i, .08)}>
+        <div class="ringbox" role="img" aria-label="Readiness ${pct}%" style="background:conic-gradient(${ring} ${pct}%, var(--track) 0)"><span>${pct}%</span></div>
+        <div class="body"><div class="t"><span class="key">${st.key}</span><b>${st.title}</b><span class="hint">${st.repo}</span></div>
+          <ul class="checks">${CHECKS.map((c, j) => `<li class="${st.ok[j] ? '' : 'miss'}">${st.ok[j] ? ICON.yes : ICON.no}${c}</li>`).join('')}</ul></div>
+        <div class="act">${act}</div>
+      </article>`;
+    }).join('');
+    const ready = STORIES.filter((s) => s.ok.every(Boolean)).length;
+    return `
+      <div class="split">
+        <section class="main" style="display:flex;flex-direction:column;gap:16px" aria-label="Stories">
+          <div class="head${first ? ' rise' : ''}">
+            <div><h1>Story intake</h1><p class="sub">Sprint 46 · each story is checked against the Definition of Ready before the agent picks it up</p></div>
+            <div style="display:flex;gap:8px"><span class="chip ok" style="font-size:13px;padding:6px 12px">${ready} ready</span><span class="chip warn" style="font-size:13px;padding:6px 12px">${STORIES.length - ready} need info</span></div>
+          </div>
+          ${items}
+        </section>
+        <aside class="side">
+          <section class="card${first ? ' rise' : ''}" ${d(0, .12)}><div class="card-b">
+            <h2 style="font-size:16px;font-weight:600">Definition of Ready</h2>
+            <p class="sub" style="margin:0">A story reaches the agent only when all four are true. Otherwise the agent asks in Jira instead of guessing.</p>
+            <ol class="dor"><li><b>Testable acceptance criteria</b>, written as Given / When / Then</li><li><b>Sample JSON</b> attached for any screen or renderer change</li><li><b>One repository</b>, one component, under ~15 files</li><li><b>A pattern to follow</b>: a similar existing feature</li></ol>
+          </div></section>
+          <section class="card dark-card${first ? ' rise' : ''}" ${d(0, .18)}><div class="card-b" style="gap:8px">
+            <span style="font-size:13px;color:var(--nav-muted)">Assigned this session</span>
+            <span class="big">${Object.keys(state.queued).length}</span>
+            <p>Each assigned story becomes a branch, tested commits and a draft PR for developer review.</p>
+          </div></section>
+        </aside>
+      </div>`;
+  }
+
+  /* ---------- Router ---------- */
+  const VIEWS = { overview, runs, intake };
+  function paint(first) {
+    app.innerHTML = VIEWS[state.view](first);
+    state.changed = null;
+    if (state.view === 'overview' && first) countUp();
+    const replay = document.getElementById('replay');
+    if (replay) replay.addEventListener('click', () => { startRun(); paint(true); });
+    app.querySelectorAll('[data-assign]').forEach((b) => b.addEventListener('click', () => { state.queued[b.dataset.assign] = true; state.changed = b.dataset.assign; paint(false); }));
+    app.querySelectorAll('[data-ask]').forEach((b) => b.addEventListener('click', () => { state.asked[b.dataset.ask] = true; state.changed = b.dataset.ask; paint(false); }));
+  }
+  function route() {
+    const v = location.hash.replace('#', '');
+    state.view = VIEWS[v] ? v : 'overview';
+    document.querySelectorAll('.tabs a').forEach((a) => a.setAttribute('aria-current', a.dataset.view === state.view ? 'page' : 'false'));
+    if (state.view === 'runs') startRun(); else clearInterval(state.timer);
+    paint(true);
+    window.scrollTo(0, 0);
+  }
+  window.addEventListener('hashchange', route);
+  route();
+})();
+</script>
+</body>
+</html>
