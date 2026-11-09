@@ -521,7 +521,10 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
     themeBtn.innerHTML = dark ? SUN : MOON;
     themeBtn.setAttribute('aria-label', dark ? 'Switch to light theme' : 'Switch to dark theme');
   }
-  try { const saved = localStorage.getItem('stp-theme'); if (saved) root.dataset.theme = saved; } catch (e) {}
+  // Dark by default; a choice made with the toggle is remembered and wins.
+  let saved = null;
+  try { saved = localStorage.getItem('stp-theme'); } catch (e) {}
+  root.dataset.theme = saved || 'dark';
   themeBtn.addEventListener('click', () => {
     root.dataset.theme = currentTheme() === 'dark' ? 'light' : 'dark';
     try { localStorage.setItem('stp-theme', root.dataset.theme); } catch (e) {}
